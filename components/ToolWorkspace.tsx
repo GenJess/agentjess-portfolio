@@ -76,7 +76,10 @@ const ToolWorkspace: React.FC<ToolWorkspaceProps> = ({ itemId, type, onClose }) 
     };
 
     const EnvChecker = () => {
-        const apiKey = process.env.API_KEY ? 'CONFIGURED (SECURE)' : 'MISSING';
+        // Safe check for process.env
+        const safeEnv = typeof process !== 'undefined' ? process.env : {};
+        const apiKey = safeEnv.API_KEY ? 'CONFIGURED (SECURE)' : 'MISSING';
+        const nodeEnv = safeEnv.NODE_ENV || 'development';
         
         return (
             <div className="bg-[#1A1A1C] border border-zinc-800/60 rounded-xl overflow-hidden shadow-lg">
@@ -84,13 +87,13 @@ const ToolWorkspace: React.FC<ToolWorkspaceProps> = ({ itemId, type, onClose }) 
                     <div className="p-6 flex justify-between items-center hover:bg-white/5 transition-colors">
                         <span className="font-mono text-sm text-zinc-400">process.env.API_KEY</span>
                         <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${process.env.API_KEY ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                            <span className={`text-sm font-mono ${process.env.API_KEY ? 'text-emerald-500' : 'text-red-500'}`}>{apiKey}</span>
+                            <span className={`w-2 h-2 rounded-full ${safeEnv.API_KEY ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                            <span className={`text-sm font-mono ${safeEnv.API_KEY ? 'text-emerald-500' : 'text-red-500'}`}>{apiKey}</span>
                         </div>
                     </div>
                     <div className="p-6 flex justify-between items-center hover:bg-white/5 transition-colors">
                         <span className="font-mono text-sm text-zinc-400">NODE_ENV</span>
-                        <span className="text-sm font-mono text-white">{process.env.NODE_ENV || 'development'}</span>
+                        <span className="text-sm font-mono text-white">{nodeEnv}</span>
                     </div>
                     <div className="p-6 flex justify-between items-center hover:bg-white/5 transition-colors">
                         <span className="font-mono text-sm text-zinc-400">Browser User Agent</span>
