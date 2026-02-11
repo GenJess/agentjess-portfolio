@@ -1,0 +1,7 @@
+{
+  "name": "AgentJess Portfolio Draft",
+  "description": "",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
