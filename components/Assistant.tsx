@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -15,7 +16,7 @@ interface AssistantProps {
     onNavigate: (category: CategoryId) => void;
 }
 
-// 3D Particle Orb Component - Re-wired for ElevenLabs audio levels
+// 3D Energetic Morphing Orb
 const ParticleOrb: React.FC<{ 
     active: boolean; 
     connecting: boolean;
@@ -30,23 +31,22 @@ const ParticleOrb: React.FC<{
         if (!ctx) return;
 
         let animationFrameId: number;
-        let particles: { x: number; y: number; z: number; size: number }[] = [];
-        const particleCount = 120;
+        let particles: { theta: number; phi: number; baseR: number; speed: number; phase: number }[] = [];
+        const particleCount = 180;
         const baseRadius = 50;
 
+        // Initialize particles with spherical coordinates
         for (let i = 0; i < particleCount; i++) {
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
             particles.push({
-                x: baseRadius * Math.sin(phi) * Math.cos(theta),
-                y: baseRadius * Math.sin(phi) * Math.sin(theta),
-                z: baseRadius * Math.cos(phi),
-                size: Math.random() * 1.8 + 0.4
+                theta: Math.random() * Math.PI * 2,
+                phi: Math.acos((Math.random() * 2) - 1),
+                baseR: baseRadius,
+                speed: 0.02 + Math.random() * 0.03,
+                phase: Math.random() * Math.PI * 2
             });
         }
 
-        let angleX = 0;
-        let angleY = 0;
+        let time = 0;
 
         const render = () => {
             const dpr = window.devicePixelRatio || 1;
@@ -56,24 +56,28 @@ const ParticleOrb: React.FC<{
             ctx.scale(dpr, dpr);
             ctx.clearRect(0, 0, rect.width, rect.height);
             
-            // Rotation speed logic
-            let rotationSpeed = 0.005;
-            if (connecting) rotationSpeed = 0.05;
-            if (active) rotationSpeed = 0.01 + (audioLevel * 0.05);
+            time += 0.02;
+            const energy = active ? (0.2 + audioLevel * 2.0) : 0.05; // High energy when active
             
-            angleX += rotationSpeed;
-            angleY += rotationSpeed;
-            
-            // Physical expansion based on ElevenLabs volume
-            const currentRadius = active ? (baseRadius + (audioLevel * 60)) : baseRadius;
+            // Rotation
+            const angleX = time * 0.2;
+            const angleY = time * 0.3;
+
             const cx = rect.width / 2;
             const cy = rect.height / 2;
 
             particles.forEach(p => {
-                let x = p.x;
-                let y = p.y;
-                let z = p.z;
+                // Morphing Logic: Radius fluctuates based on sine waves + audio
+                const perturbation = Math.sin(p.theta * 5 + time * 3) * Math.cos(p.phi * 4 + time * 2) * 10;
+                const activeJitter = active ? (Math.random() - 0.5) * audioLevel * 40 : 0;
+                const r = p.baseR + perturbation * energy + activeJitter;
 
+                // Spherical to Cartesian
+                let x = r * Math.sin(p.phi) * Math.cos(p.theta);
+                let y = r * Math.sin(p.phi) * Math.sin(p.theta);
+                let z = r * Math.cos(p.phi);
+
+                // Rotate 3D
                 const cosX = Math.cos(angleX);
                 const sinX = Math.sin(angleX);
                 const tempY = y * cosX - z * sinX;
@@ -87,22 +91,35 @@ const ParticleOrb: React.FC<{
                 z = -x * sinY + z * cosY;
                 x = tempX;
 
-                const scale = 200 / (200 + z); 
-                const projX = cx + x * scale * (currentRadius/baseRadius);
-                const projY = cy + y * scale * (currentRadius/baseRadius);
+                // Project
+                const scale = 250 / (250 + z); 
+                const projX = cx + x * scale;
+                const projY = cy + y * scale;
                 
+                // Draw
                 const alpha = (z + baseRadius) / (2 * baseRadius);
                 ctx.beginPath();
-                ctx.arc(projX, projY, p.size * scale, 0, Math.PI * 2);
+                ctx.arc(projX, projY, (active ? 2 : 1.5) * scale, 0, Math.PI * 2);
                 
                 if (connecting) {
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                 } else if (active) {
-                    ctx.fillStyle = `rgba(52, 211, 153, ${alpha})`; // Emerald 400
+                    // Energetic Cyan/Emerald
+                    ctx.fillStyle = `rgba(${50 + audioLevel * 200}, ${255 - audioLevel * 100}, ${200}, ${alpha})`; 
                 } else {
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.15})`; // Idle
+                    ctx.fillStyle = `rgba(100, 100, 100, ${alpha * 0.5})`; // Idle
                 }
                 ctx.fill();
+
+                // Draw "Lines that Flash" - connections when active
+                if (active && Math.random() > 0.95) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.moveTo(cx, cy); // From center
+                    ctx.lineTo(projX, projY);
+                    ctx.stroke();
+                }
             });
 
             animationFrameId = requestAnimationFrame(render);
@@ -173,22 +190,17 @@ const Assistant = forwardRef<AssistantRef, AssistantProps>(({ onNavigate }, ref)
         </span>
       </div>
 
-      {/* The Unified Interactive Orb */}
+      {/* The Unified Interactive Orb Container */}
       <button 
         onClick={handleToggle}
-        className={`relative w-20 h-20 rounded-full transition-all duration-700 ease-out hover:scale-110 active:scale-95 flex items-center justify-center overflow-hidden border ${
+        className={`relative w-24 h-24 rounded-full transition-all duration-700 ease-out hover:scale-110 active:scale-95 flex items-center justify-center overflow-hidden border ${
             isActive 
-                ? 'bg-black border-emerald-500/30 shadow-[0_0_40px_rgba(16,185,129,0.2)]' 
-                : 'bg-zinc-950/40 backdrop-blur-md border-white/5 hover:border-white/20'
+                ? 'bg-black border-emerald-500/50 shadow-[0_0_60px_rgba(16,185,129,0.3)]' 
+                : 'bg-black/40 backdrop-blur-md border-white/10 hover:border-white/30'
         }`}
       >
-         {/* Internal Glow Effect */}
-         <div className={`absolute inset-0 transition-opacity duration-700 ${
-             isActive ? 'opacity-10' : 'opacity-0'
-         } bg-emerald-500`}></div>
-
          {/* 3D Reactive Particle Canvas */}
-         <div className="w-full h-full relative z-10">
+         <div className="w-full h-full relative z-10 scale-125">
             <ParticleOrb 
                 active={isActive} 
                 connecting={isConnecting}
@@ -196,24 +208,24 @@ const Assistant = forwardRef<AssistantRef, AssistantProps>(({ onNavigate }, ref)
             />
          </div>
 
-         {/* Center Icon Overlay (Subtle) */}
+         {/* Center Icon Overlay (Fades out when active to show raw energy) */}
          <div className={`absolute inset-0 z-20 flex items-center justify-center transition-all duration-500 ${
-             !isActive && !isConnecting ? 'opacity-40 group-hover:opacity-100' : 'opacity-0 scale-50'
+             !isActive && !isConnecting ? 'opacity-50 group-hover:opacity-100' : 'opacity-0 scale-50'
          }`}>
-             <span className="material-symbols-outlined text-white text-xl">mic</span>
+             <span className="material-symbols-outlined text-white text-2xl">mic</span>
          </div>
-
-         {/* Stop Icon (Visible when active) */}
-         <div className={`absolute inset-0 z-20 flex items-center justify-center transition-all duration-500 ${
-             isActive ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'
+         
+         {/* Close Icon (Shows only on Hover when active) */}
+         <div className={`absolute inset-0 z-30 flex items-center justify-center transition-all duration-300 ${
+             isActive ? 'opacity-0 group-hover:opacity-100 bg-black/50 backdrop-blur-sm' : 'opacity-0 pointer-events-none'
          }`}>
-             <span className="material-symbols-outlined text-white text-xl">stop</span>
+             <span className="material-symbols-outlined text-white text-2xl">stop</span>
          </div>
       </button>
 
-      {/* Decorative Outer Rings (Active Only) */}
-      {isActive && (
-          <div className="absolute inset-[-10px] border border-emerald-500/10 rounded-full animate-[spin_10s_linear_infinite] pointer-events-none"></div>
+      {/* Decorative Outer Ring (Static Technical) */}
+      {!isActive && (
+          <div className="absolute inset-[-4px] border border-white/5 rounded-full pointer-events-none"></div>
       )}
     </div>
   );
